@@ -6,16 +6,7 @@ import numpy as np
 import theano.tensor as tt
 import pymc3 as pm
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 simulation_num = 1000
-basic_model = pm.Model()
-
-
-def sample_wins(win_rate):
-    with basic_model:
-        a = pm.Normal('alpha', mu=win_rate, sigma=0.2)
 
 
 class CallBot(BasePokerPlayer):
@@ -28,22 +19,46 @@ class CallBot(BasePokerPlayer):
             community_card=gen_cards(community)
         )
         print(win_rate)
+
+        for uuid, p in self.round_players:
+            confidence = 0
+            for action in p['actions']:
+                if action[0] == 'fold':
+                    confidence = 0
+                    break
+                confidence += action[1]/action[2]  # Amount divided by pot size
+
         actions = [item for item in valid_actions if item['action'] in ['call']]
         return list(np.random.choice(actions).values())
 
     def receive_game_start_message(self, game_info):
-        pass
+        print(game_info)
+        self.nb_player = game_info['player_num']
+        game_info_copy = game_info['seats'].copy()
+        self.game_players = {}
+        for p in game_info_copy:
+            if not p['uuid'] == self.uuid:
+                self.game_players[p['uuid']] = p
 
     def receive_round_start_message(self, round_count, hole_card, seats):
-        pass
+        round_players_copy = seats.copy()
+        self.round_players = {}
+        for p in round_players_copy:
+            if not p['uuid'] == self.uuid:
+                self.round_players[p['uuid']] = p
+                self.round_players[p['uuid']]['actions'] = []
 
     def receive_street_start_message(self, street, round_state):
         pass
 
     def receive_game_update_message(self, action, round_state):
-        pass
+        if not action['player_uuid'] == self.uuid:
+            self.round_players[action['player_uuid']]['actions'].append(
+                (action['action'], action['amount'], round_state['pot']['main']['amount']))
+            # TODO: This ignores sidepot, which could be very important if bottom stack is all in
 
     def receive_round_result_message(self, winners, hand_info, round_state):
+        print(winners)
         pass
 
 
