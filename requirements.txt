@@ -1,3 +1,4 @@
 pypokerengine
 git+https://github.com/edwinbalani/PyPokerGUI@master
 numpy
+keanu
