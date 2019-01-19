@@ -3,7 +3,7 @@ assert subscription_key
 
 emotion_recognition_url = "https://westeurope.api.cognitive.microsoft.com/face/v1.0/detect?returnFaceAttributes=emotion"
 
-image_path = "images/emotion_4.jpg"
+image_path = "images/emotion_1.jpg"
 image_data = open(image_path, "rb").read()
 
 import requests
@@ -13,13 +13,4 @@ response.raise_for_status()
 analysis = response.json()
 analysis
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from io import BytesIO
-from PIL import Image
-
-plt.figure(figsize=(5,5))
-
-image  = Image.open(BytesIO(image_data))
-ax     = plt.imshow(image, alpha=0.6)
 print(analysis)
