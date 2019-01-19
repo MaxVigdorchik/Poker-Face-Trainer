@@ -2,3 +2,6 @@ pypokerengine
 git+https://github.com/edwinbalani/PyPokerGUI@master
 numpy
 pymc3
+theano
+seaborn
+matplotlib
