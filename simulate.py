@@ -17,5 +17,5 @@ if __name__ == '__main__':
         config.register_player(name="p2", algorithm=p2)
         game_result = start_poker(config, verbose=0)
 
-        stack_log.append([player['stack'] for player in game_result['players'] if player['uuid'] == blogger_bot.uuid])
+        stack_log.append([player['stack'] for player in game_result['players'] if player['uuid'] == p2.uuid])
         print('Avg. stack:', '%d' % (int(np.mean(stack_log))))                                                                               

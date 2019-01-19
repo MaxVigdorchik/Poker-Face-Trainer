@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+linker_path.sh
 
 # C extensions
 *.so
