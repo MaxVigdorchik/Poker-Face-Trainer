@@ -11,6 +11,7 @@ simulation_num = 1000
 
 class CallBot(BasePokerPlayer):
     def declare_action(self, valid_actions, hole_card, round_state):
+        action_model = pm.Model()
         community = round_state['community_card']
         win_rate = estimate_hole_card_win_rate(
             nb_simulation=simulation_num,
@@ -18,15 +19,24 @@ class CallBot(BasePokerPlayer):
             hole_card=gen_cards(hole_card),
             community_card=gen_cards(community)
         )
-        print(win_rate)
 
-        for uuid, p in self.round_players:
+        for uuid, p in self.round_players.items():
             confidence = 0
             for action in p['actions']:
                 if action[0] == 'fold':
                     confidence = 0
                     break
                 confidence += action[1]/action[2]  # Amount divided by pot size
+            # Keep track of action number as well
+            self.round_players[uuid]['confidence'] = (
+                confidence, len(p['actions']))
+
+        with action_model:
+            win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
+                win_rate*(1-win_rate)/simulation_num))
+            # TODO: Standard deviations for confidence can be calculated in a smarter way
+            confidences = [
+                pm.Normal('confidence_' + id, mu=self.round_players[id]['confidence'][0], sd=0.2) for id in self.game_uuids]
 
         actions = [item for item in valid_actions if item['action'] in ['call']]
         return list(np.random.choice(actions).values())
@@ -34,11 +44,13 @@ class CallBot(BasePokerPlayer):
     def receive_game_start_message(self, game_info):
         print(game_info)
         self.nb_player = game_info['player_num']
+        self.game_uuids = []
         game_info_copy = game_info['seats'].copy()
         self.game_players = {}
         for p in game_info_copy:
             if not p['uuid'] == self.uuid:
                 self.game_players[p['uuid']] = p
+                self.game_uuids.append(p['uuid'])
 
     def receive_round_start_message(self, round_count, hole_card, seats):
         round_players_copy = seats.copy()
