@@ -103,7 +103,7 @@ class CallBot(BasePokerPlayer):
 
     def receive_game_update_message(self, action, round_state):
         uuid = action['player_uuid']
-        if len(p['uuid']) > 2:
+        if len(uuid) > 2:
             self.round_players[uuid]['actions'].append(
                 (action['action'], action['amount'], round_state['pot']['main']['amount']))
             # TODO: This ignores sidepot, which could be very important if bottom stack is all in
