@@ -6,7 +6,7 @@ import numpy as np
 import pymc3 as pm
 import logging
 logger = logging.getLogger("pymc3")
-# logger.setLevel(logging.ERROR)
+logger.setLevel(logging.ERROR)
 
 simulation_num = 1000
 
@@ -27,6 +27,7 @@ class CallBot(BasePokerPlayer):
             hole_card=gen_cards(hole_card),
             community_card=gen_cards(community)
         )
+        print("My Hand is ", hole_card)
 
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
@@ -42,12 +43,8 @@ class CallBot(BasePokerPlayer):
             trace = pm.sample(500, progressbar=False)
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
-            print(np.shape(trace['confidence_'+self.game_uuids[0]]))
-            print(np.shape(post_pred['bluff_'+self.game_uuids[0]]))
             bets = []
             for id in self.game_uuids:
-                print(id)
-                print(self.game_uuids)
                 bet = trace['win_chance'] - trace['confidence_'+id] / \
                     self.game_players[id]['average_confidence'][0] * \
                     np.tanh(1-10*post_pred['bluff_'+id][:, 0])
@@ -55,29 +52,24 @@ class CallBot(BasePokerPlayer):
 
         # Softens the curve for betting
         target_bet = np.min(bets)
-        if target_bet > 0.5:
-            target_bet = target_bet - 0.5
-            target_bet = target_bet * 2 + 0.7
+        print("Pre adjusted target_bet is: ", target_bet)
+        target_bet = 1/(1.2-target_bet) - 5/6
         print("Target bet is ", target_bet)
-        print("Stack size is: ", round_state['seats'][1]['stack'])
         pot = round_state['pot']['main']['amount']
 
         call = [item for item in valid_actions if item['action'] in ['call']]
-        if len(call) > 0:
-            print("Call Amount is: ", call[0]['amount'] / pot)
         p_raise = [item for item in valid_actions if item['action'] in ['raise']]
-        if len(call) > 0 and call[0]['amount'] > target_bet*pot*1.1:
+        if len(call) > 0 and call[0]['amount'] > target_bet*pot:
+            print("I FOLDED: ", target_bet*pot, call[0]["amount"])
             return 'fold', 0
-        elif len(p_raise) > 0 and len(call) > 0 and target_bet*pot > call[0]['amount'] * 1.1:
+        elif len(p_raise) > 0 and len(call) > 0 and np.round(target_bet*pot) > call[0]['amount'] * 1.1:
             if target_bet*pot > p_raise[0]['amount']['min']:
                 if target_bet*pot < p_raise[0]['amount']['max']:
-                    return 'raise', target_bet*pot
+                    return 'raise', np.round(target_bet*pot)
                 else:
                     return 'raise', p_raise[0]['amount']['max']
         else:
-            return call[0].values()
-
-        return 'fold', 0
+            return 'call', call[0]['amount']
 
     def receive_game_start_message(self, game_info):
         self.nb_player = game_info['player_num']
@@ -176,6 +168,11 @@ class CallBot(BasePokerPlayer):
                 self.game_players[uuid]['average_confidence'] = data[1]
                 self.game_players[uuid]['average_loss_confidence'] = data[2]
                 self.game_players[uuid]['average_win_confidence'] = data[3]
+            else:
+                self.game_players[uuid]['bluffs'] = [1]
+                self.game_players[uuid]['average_confidence'] = (0.5, 1)
+                self.game_players[uuid]['average_loss_confidence'] = (0.5, 1)
+                self.game_players[uuid]['average_win_confidence'] = (0.5, 1)
 
 
 def setup_ai():
