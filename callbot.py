@@ -5,6 +5,9 @@ import pickle
 import numpy as np
 import pymc3 as pm
 import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import logging
 logger = logging.getLogger("pymc3")
 logger.setLevel(logging.ERROR)
@@ -42,9 +45,11 @@ class CallBot(BasePokerPlayer):
                                   observed=self.game_players[id]['bluffs'])
 
             trace = pm.sample(500, njobs=1, progressbar=False)
-            pm.traceplot(trace)
+
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
+            pm.plot_posterior(post_pred)
+            plt.savefig('./test.png')
             bets = []
             for id in self.game_uuids:
                 bet = trace['win_chance'] - trace['confidence_'+id] / \
