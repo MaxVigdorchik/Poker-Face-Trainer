@@ -1,10 +1,12 @@
 from pypokerengine.players import BasePokerPlayer
 from pypokerengine.utils.card_utils import gen_cards, estimate_hole_card_win_rate
 
-
+import pickle
 import numpy as np
-import theano.tensor as tt
 import pymc3 as pm
+import logging
+logger = logging.getLogger("pymc3")
+logger.propagate = False
 
 simulation_num = 1000
 
@@ -19,6 +21,7 @@ class CallBot(BasePokerPlayer):
             hole_card=gen_cards(hole_card),
             community_card=gen_cards(community)
         )
+        print("Win Rate Is ", win_rate)
 
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
@@ -29,6 +32,11 @@ class CallBot(BasePokerPlayer):
             mu = pm.Normal('base', mu=1, sd=0.3)
             bluffs = [pm.Normal('bluff_' + id, mu=mu, sd=0.3,
                                 observed=self.game_players[id]['bluffs']) for id in self.game_uuids]
+
+            trace = pm.sample(500, progressbar=False)
+            post_pred = pm.sample_posterior_predictive(
+                trace, samples=500, progressbar=False)
+            print(np.mean(post_pred['bluff_'+self.game_uuids[0]]))
 
         actions = [item for item in valid_actions if item['action'] in ['call']]
         return list(np.random.choice(actions).values())
@@ -51,6 +59,7 @@ class CallBot(BasePokerPlayer):
                 # List of relative confidence after losses
                 self.game_players[p['uuid']]['bluffs'] = []
                 self.game_uuids.append(p['uuid'])
+        self.load_data()
 
     def receive_round_start_message(self, round_count, hole_card, seats):
         round_players_copy = seats.copy()
@@ -101,6 +110,31 @@ class CallBot(BasePokerPlayer):
 
                     self.game_players[uuid]['bluffs'].append(
                         self.round_players[uuid]['confidence'][0]/(total / number))
+        print(self.game_players[self.game_uuids[0]]['bluffs'])
+        self.save_data()
+
+    def save_data(self):
+        with open('player.dat', 'rb') as f:
+            players = pickle.load(f)
+
+        for uuid in self.game_uuids:
+            players[self.game_players[uuid]['name']] = (self.game_players[uuid]['bluffs'], self.game_players[uuid]['average_confidence'],
+                                                        self.game_players[uuid]['average_loss_confidence'], self.game_players[uuid]['average_win_confidence'])
+
+        with open('player.dat', 'wb') as f:
+            players = pickle.dump(players, f)
+
+    def load_data(self):
+        with open('player.dat', 'rb') as f:
+            players = pickle.load(f)
+
+        for uuid in self.game_uuids:
+            if self.game_players[uuid]['name'] in players.keys():
+                data = players[self.game_players[uuid]['name']]
+                self.game_players[uuid]['bluffs'] = data[0]
+                self.game_players[uuid]['average_confidence'] = data[1]
+                self.game_players[uuid]['average_loss_confidence'] = data[2]
+                self.game_players[uuid]['average_win_confidence'] = data[3]
 
 
 def setup_ai():
