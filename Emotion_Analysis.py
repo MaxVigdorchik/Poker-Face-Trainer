@@ -4,6 +4,7 @@ import requests
 from video_capture import MyVideoCapture
 vids = MyVideoCapture()
 
+
 def get_emotion_data():
     ret, rgb = vids.get_frame()
     result, jpg = cv2.imencode('.jpg', rgb)
@@ -20,4 +21,4 @@ def get_emotion_data():
     analysis = response.json()
     print(analysis)
 
-get_emotion_data()
+# get_emotion_data()

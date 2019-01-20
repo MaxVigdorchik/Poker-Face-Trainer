@@ -7,6 +7,7 @@ import requests
 import pymc3 as pm
 import seaborn as sns
 import matplotlib
+from Emotion_Analysis import get_emotion_data
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import logging
@@ -23,22 +24,6 @@ class CallBot(BasePokerPlayer):
         else:
             return len(str(other_uuid)) <= 2
 
-    # def get_emotion_data(self):
-    #     rgb = self.vids.get_frame()
-    #     jpg = cv2.imencode('jpg', rgb)
-    #     subscription_key = '1a58d3cda9554726b64dae6aba761774'
-    #     assert subscription_key
-
-    #     emotion_recognition_url = "https://westeurope.api.cognitive.microsoft.com/face/v1.0/detect?returnFaceAttributes=emotion"
-
-    #     headers = {'Ocp-Apim-Subscription-Key': subscription_key,
-    #                "Content-Type": "application/octet-stream"}
-    #     response = requests.post(
-    #         emotion_recognition_url, headers=headers, data=jpg)
-    #     response.raise_for_status()
-    #     analysis = response.json()
-    #     print(analysis)
-
     def declare_action(self, valid_actions, hole_card, round_state):
         action_model = pm.Model()
         community = round_state['community_card']
@@ -50,6 +35,10 @@ class CallBot(BasePokerPlayer):
         )
         print("My Hand is ", hole_card)
 
+        # Get emotion data
+        json_data = get_emotion_data()
+        emotions = json_data[0]['emotion'].values()
+        print(emotions)
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
                 win_rate*(1-win_rate)/simulation_num))
