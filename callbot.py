@@ -42,9 +42,10 @@ class CallBot(BasePokerPlayer):
                     self.game_players[id]['average_confidence'][0] * \
                     np.tanh(1-10*post_pred['bluff_'+id][:, 0])
                 bets.append(np.mean(bet))
-            print("potential bets are ", bets)
 
-        target_bet = np.min(bets)
+        # Softens the curve for betting
+        target_bet = np.exp(np.min(bets)/1.5)-1
+        print("Target bet is ", target_bet)
         pot = round_state['pot']['main']['amount']
 
         call = [item for item in valid_actions if item['action'] in ['call']]
