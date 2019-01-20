@@ -5,3 +5,4 @@ pymc3
 theano
 seaborn
 matplotlib
+opencv-python
