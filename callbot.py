@@ -1,9 +1,6 @@
 from pypokerengine.players import BasePokerPlayer
 from pypokerengine.utils.card_utils import gen_cards, estimate_hole_card_win_rate
 
-import video_capture as vc
-import cv2
-
 import pickle
 import numpy as np
 import requests
@@ -20,30 +17,27 @@ simulation_num = 1000
 
 
 class CallBot(BasePokerPlayer):
-    def __init__(self):
-        self.vids = vc.MyVideoCapture()
-
     def it_me(self, other_uuid):
         if hasattr(self, 'uuid'):
             return self.uuid == other_uuid
         else:
             return len(str(other_uuid)) <= 2
 
-    def get_emotion_data(self):
-        rgb = self.vids.get_frame()
-        jpg = cv2.imencode('jpg', rgb)
-        subscription_key = '1a58d3cda9554726b64dae6aba761774'
-        assert subscription_key
+    # def get_emotion_data(self):
+    #     rgb = self.vids.get_frame()
+    #     jpg = cv2.imencode('jpg', rgb)
+    #     subscription_key = '1a58d3cda9554726b64dae6aba761774'
+    #     assert subscription_key
 
-        emotion_recognition_url = "https://westeurope.api.cognitive.microsoft.com/face/v1.0/detect?returnFaceAttributes=emotion"
+    #     emotion_recognition_url = "https://westeurope.api.cognitive.microsoft.com/face/v1.0/detect?returnFaceAttributes=emotion"
 
-        headers = {'Ocp-Apim-Subscription-Key': subscription_key,
-                   "Content-Type": "application/octet-stream"}
-        response = requests.post(
-            emotion_recognition_url, headers=headers, data=jpg)
-        response.raise_for_status()
-        analysis = response.json()
-        print(analysis)
+    #     headers = {'Ocp-Apim-Subscription-Key': subscription_key,
+    #                "Content-Type": "application/octet-stream"}
+    #     response = requests.post(
+    #         emotion_recognition_url, headers=headers, data=jpg)
+    #     response.raise_for_status()
+    #     analysis = response.json()
+    #     print(analysis)
 
     def declare_action(self, valid_actions, hole_card, round_state):
         action_model = pm.Model()
@@ -71,8 +65,7 @@ class CallBot(BasePokerPlayer):
 
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
-            pm.plot_posterior(post_pred)
-            plt.savefig('./test.png')
+
             bets = []
             for id in self.game_uuids:
                 bet = trace['win_chance'] - trace['confidence_'+id] / \
