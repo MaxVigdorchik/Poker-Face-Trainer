@@ -6,7 +6,7 @@ import numpy as np
 import pymc3 as pm
 import logging
 logger = logging.getLogger("pymc3")
-logger.setLevel(logging.ERROR)
+# logger.setLevel(logging.ERROR)
 
 simulation_num = 1000
 
@@ -42,8 +42,12 @@ class CallBot(BasePokerPlayer):
             trace = pm.sample(500, progressbar=False)
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
+            print(np.shape(trace['confidence_'+self.game_uuids[0]]))
+            print(np.shape(post_pred['bluff_'+self.game_uuids[0]]))
             bets = []
             for id in self.game_uuids:
+                print(id)
+                print(self.game_uuids)
                 bet = trace['win_chance'] - trace['confidence_'+id] / \
                     self.game_players[id]['average_confidence'][0] * \
                     np.tanh(1-10*post_pred['bluff_'+id][:, 0])
