@@ -37,7 +37,7 @@ class CallBot(BasePokerPlayer):
 
         # Get emotion data
         json_data = get_emotion_data()
-        emotions = json_data[0]['emotion'].values()
+        emotions = json_data[0]['faceAttributes']['emotion'].values()
         print(emotions)
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
@@ -84,6 +84,9 @@ class CallBot(BasePokerPlayer):
             return 'call', call[0]['amount']
 
     def receive_game_start_message(self, game_info):
+        json_data = get_emotion_data()
+        emotions = json_data[0]['faceAttributes']['emotion'].values()
+        self.base_emotion = emotions
         self.nb_player = game_info['player_num']
         self.game_uuids = []
         game_info_copy = game_info['seats'].copy()
