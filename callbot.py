@@ -20,29 +20,20 @@ class CallBot(BasePokerPlayer):
             community_card=gen_cards(community)
         )
 
-        for uuid, p in self.round_players.items():
-            confidence = 0
-            for action in p['actions']:
-                if action[0] == 'fold':
-                    confidence = 0
-                    break
-                confidence += action[1]/action[2]  # Amount divided by pot size
-            # Keep track of action number as well
-            self.round_players[uuid]['confidence'] = (
-                confidence, len(p['actions']))
-
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
                 win_rate*(1-win_rate)/simulation_num))
             # TODO: Standard deviations for confidence can be calculated in a smarter way
             confidences = [
                 pm.Normal('confidence_' + id, mu=self.round_players[id]['confidence'][0], sd=0.2) for id in self.game_uuids]
+            mu = pm.Normal('base', mu=1, sd=0.3)
+            bluffs = [pm.Normal('bluff_' + id, mu=mu, sd=0.3,
+                                observed=self.game_players[id]['bluffs']) for id in self.game_uuids]
 
         actions = [item for item in valid_actions if item['action'] in ['call']]
         return list(np.random.choice(actions).values())
 
     def receive_game_start_message(self, game_info):
-        print(game_info)
         self.nb_player = game_info['player_num']
         self.game_uuids = []
         game_info_copy = game_info['seats'].copy()
@@ -50,6 +41,15 @@ class CallBot(BasePokerPlayer):
         for p in game_info_copy:
             if not p['uuid'] == self.uuid:
                 self.game_players[p['uuid']] = p
+                self.game_players[p['uuid']]['average_confidence'] = (
+                    0.5, 1)  # Average is (sum,amount), initialize nonzero to reduce variance
+                self.game_players[p['uuid']]['average_loss_confidence'] = (
+                    0.5, 1)
+                self.game_players[p['uuid']]['average_win_confidence'] = (
+                    0.5, 1)
+
+                # List of relative confidence after losses
+                self.game_players[p['uuid']]['bluffs'] = []
                 self.game_uuids.append(p['uuid'])
 
     def receive_round_start_message(self, round_count, hole_card, seats):
@@ -59,19 +59,48 @@ class CallBot(BasePokerPlayer):
             if not p['uuid'] == self.uuid:
                 self.round_players[p['uuid']] = p
                 self.round_players[p['uuid']]['actions'] = []
+                self.round_players[p['uuid']]['confidence'] = (0, 1)
 
     def receive_street_start_message(self, street, round_state):
         pass
 
     def receive_game_update_message(self, action, round_state):
-        if not action['player_uuid'] == self.uuid:
-            self.round_players[action['player_uuid']]['actions'].append(
+        uuid = action['player_uuid']
+        if not uuid == self.uuid:
+            self.round_players[uuid]['actions'].append(
                 (action['action'], action['amount'], round_state['pot']['main']['amount']))
             # TODO: This ignores sidepot, which could be very important if bottom stack is all in
 
+            confidence = 0
+            for action in self.round_players[action['player_uuid']]['actions']:
+                if action[0] == 'fold':
+                    confidence = 0
+                    break
+                confidence += action[1]/action[2]  # Amount divided by pot size
+            # Keep track of action number as well
+            self.round_players[uuid]['confidence'] = (
+                confidence, len(self.round_players[uuid]['actions']))
+
     def receive_round_result_message(self, winners, hand_info, round_state):
-        print(winners)
-        pass
+        win_ids = [p['uuid'] for p in winners]
+        if hand_info:
+            for uuid in self.game_uuids:
+                # Update average confidences FOR FINISHED HANDS
+                total, number = self.game_players[uuid]['average_confidence']
+                self.game_players[uuid]['average_confidence'] = (
+                    total + self.round_players[uuid]['confidence'][0], number + 1)
+
+                if uuid in win_ids:
+                    total, number = self.game_players[uuid]['average_win_confidence']
+                    self.game_players[uuid]['average_win_confidence'] = (
+                        total + self.round_players[uuid]['confidence'][0], number + 1)
+                else:
+                    total, number = self.game_players[uuid]['average_loss_confidence']
+                    self.game_players[uuid]['average_loss_confidence'] = (
+                        total + self.round_players[uuid]['confidence'][0], number + 1)
+
+                    self.game_players[uuid]['bluffs'].append(
+                        self.round_players[uuid]['confidence'][0]/(total / number))
 
 
 def setup_ai():
