@@ -44,11 +44,17 @@ class CallBot(BasePokerPlayer):
                 bets.append(np.mean(bet))
 
         # Softens the curve for betting
-        target_bet = np.exp(np.min(bets)/1.5)-1
+        target_bet = np.min(bets)
+        if target_bet > 0.5:
+            target_bet = target_bet - 0.5
+            target_bet = target_bet * 2 + 0.7
         print("Target bet is ", target_bet)
+        print("Stack size is: ", round_state['seats'][1]['stack'])
         pot = round_state['pot']['main']['amount']
 
         call = [item for item in valid_actions if item['action'] in ['call']]
+        if len(call) > 0:
+            print("Call Amount is: ", call[0]['amount'] / pot)
         p_raise = [item for item in valid_actions if item['action'] in ['raise']]
         if len(call) > 0 and call[0]['amount'] > target_bet*pot*1.1:
             return 'fold', 0
