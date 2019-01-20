@@ -1,5 +1,5 @@
 ai_players:
-- name: callbot
+- name: Bluffy The Vampire Slayer
   path: ./callbot.py
 ante: 0
 blind_structure: null

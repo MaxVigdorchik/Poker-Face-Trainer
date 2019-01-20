@@ -4,6 +4,7 @@ from pypokerengine.utils.card_utils import gen_cards, estimate_hole_card_win_rat
 import pickle
 import numpy as np
 import pymc3 as pm
+import seaborn as sns
 import logging
 logger = logging.getLogger("pymc3")
 logger.setLevel(logging.ERROR)
@@ -41,6 +42,7 @@ class CallBot(BasePokerPlayer):
                                   observed=self.game_players[id]['bluffs'])
 
             trace = pm.sample(500, njobs=1, progressbar=False)
+            pm.traceplot(trace)
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
             bets = []
@@ -59,12 +61,12 @@ class CallBot(BasePokerPlayer):
 
         call = [item for item in valid_actions if item['action'] in ['call']]
         p_raise = [item for item in valid_actions if item['action'] in ['raise']]
-        if len(call) > 0 and call[0]['amount'] > target_bet*pot:
+        if len(call) > 0 and call[0]['amount'] > np.round(target_bet*pot):
             print("I FOLDED: ", target_bet*pot, call[0]["amount"])
             return 'fold', 0
-        elif len(p_raise) > 0 and len(call) > 0 and np.round(target_bet*pot) > call[0]['amount'] * 1.1:
-            if target_bet*pot > p_raise[0]['amount']['min']:
-                if target_bet*pot < p_raise[0]['amount']['max']:
+        elif len(p_raise) > 0 and len(call) > 0 and np.round(target_bet*pot) > call[0]['amount']:
+            if np.round(target_bet*pot) > p_raise[0]['amount']['min']:
+                if np.round(target_bet*pot) < p_raise[0]['amount']['max']:
                     return 'raise', np.round(target_bet*pot)
                 else:
                     return 'raise', p_raise[0]['amount']['max']
