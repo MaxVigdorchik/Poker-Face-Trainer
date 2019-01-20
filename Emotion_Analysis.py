@@ -1,7 +1,7 @@
 import cv2
 import requests
 
-from .video_capture import MyVideoCapture
+from video_capture import MyVideoCapture
 vids = MyVideoCapture()
 
 def get_emotion_data():
