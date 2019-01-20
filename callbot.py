@@ -38,7 +38,7 @@ class CallBot(BasePokerPlayer):
         # Get emotion data
         json_data = get_emotion_data()
         emotions = json_data[0]['faceAttributes']['emotion'].values()
-        print(emotions)
+        emotions = np.array(emotions)
         with action_model:
             win_chance = pm.Normal('win_chance', mu=win_rate, sd=np.sqrt(
                 win_rate*(1-win_rate)/simulation_num))
@@ -50,16 +50,20 @@ class CallBot(BasePokerPlayer):
                 bluff = pm.Normal('bluff_' + id, mu=mu, sd=0.3,
                                   observed=self.game_players[id]['bluffs'])
 
+                emote = pm.Normal('emote', mu=np.linalg.norm(
+                    emotions-self.base_emotion), sd=0.1)
+
             trace = pm.sample(500, njobs=1, progressbar=False)
 
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
 
+            print(np.mean(trace['emote']))
             bets = []
             for id in self.game_uuids:
                 bet = trace['win_chance'] - trace['confidence_'+id] / \
                     self.game_players[id]['average_confidence'][0] * \
-                    np.tanh(1-10*post_pred['bluff_'+id][:, 0])
+                    np.tanh(1-10*post_pred['bluff_'+id][:, 0]) * trace['emote']
                 bets.append(np.mean(bet))
 
         # Softens the curve for betting
@@ -86,7 +90,7 @@ class CallBot(BasePokerPlayer):
     def receive_game_start_message(self, game_info):
         json_data = get_emotion_data()
         emotions = json_data[0]['faceAttributes']['emotion'].values()
-        self.base_emotion = emotions
+        self.base_emotion = np.array(emotions)
         self.nb_player = game_info['player_num']
         self.game_uuids = []
         game_info_copy = game_info['seats'].copy()
