@@ -21,4 +21,6 @@ def get_emotion_data():
     analysis = response.json()
     print(analysis)
 
+    return analysis
+
 # get_emotion_data()
