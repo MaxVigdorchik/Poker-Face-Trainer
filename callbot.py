@@ -81,7 +81,7 @@ class CallBot(BasePokerPlayer):
         game_info_copy = game_info['seats'].copy()
         self.game_players = {}
         for p in game_info_copy:
-            if not self.it_me(p['uuid'])
+            if not self.it_me(p['uuid']):
                 self.game_players[p['uuid']] = p
                 self.game_players[p['uuid']]['average_confidence'] = (
                     0.5, 1)  # Average is (sum,amount), initialize nonzero to reduce variance
@@ -99,7 +99,7 @@ class CallBot(BasePokerPlayer):
         round_players_copy = seats.copy()
         self.round_players = {}
         for p in round_players_copy:
-            if not self.it_me(p['uuid'])
+            if not self.it_me(p['uuid']):
                 self.round_players[p['uuid']] = p
                 self.round_players[p['uuid']]['actions'] = []
                 self.round_players[p['uuid']]['confidence'] = (0, 1)
@@ -109,7 +109,7 @@ class CallBot(BasePokerPlayer):
 
     def receive_game_update_message(self, action, round_state):
         uuid = action['player_uuid']
-        if not self.it_me(uuid)
+        if not self.it_me(uuid):
             self.round_players[uuid]['actions'].append(
                 (action['action'], action['amount'], round_state['pot']['main']['amount']))
             # TODO: This ignores sidepot, which could be very important if bottom stack is all in
