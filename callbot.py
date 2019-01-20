@@ -87,6 +87,8 @@ class CallBot(BasePokerPlayer):
         else:
             return 'call', call[0]['amount']
 
+        return 'fold', 0  # last resort
+
     def receive_game_start_message(self, game_info):
         json_data = get_emotion_data()
         emotions = json_data[0]['faceAttributes']['emotion'].values()
