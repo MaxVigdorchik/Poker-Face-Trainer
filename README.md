@@ -1,7 +1,6 @@
 # Poker-Face-Trainer
 
-Poker AI informed by facial recognition data
-Website: https://csi21.github.io/Graphs/
+Poker AI informed by facial recognition data (https://csi21.github.io/Graphs/)
 
 ## Quickstart
 
