@@ -40,7 +40,7 @@ class CallBot(BasePokerPlayer):
                 bluff = pm.Normal('bluff_' + id, mu=mu, sd=0.3,
                                   observed=self.game_players[id]['bluffs'])
 
-            trace = pm.sample(500, progressbar=False)
+            trace = pm.sample(500, njobs=1, progressbar=False)
             post_pred = pm.sample_posterior_predictive(
                 trace, samples=1000, progressbar=False)
             bets = []
